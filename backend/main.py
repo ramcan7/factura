@@ -35,9 +35,16 @@ class InvoiceRequest(BaseModel):
 # 3. Función mejorada para extraer JSON
 def extract_invoice_data(text: str):
     prompt = f"""
-    Eres un experto asistente contable. Tu tarea es extraer información de facturas.
-    Analiza el siguiente texto y extrae los datos en formato JSON.
-    
+    Eres un Agente Contable experto en facturación SUNAT. Tu única misión es extraer *solamente* la información necesaria para armar un borrador de factura o boleta, y devolverla estrictamente en el formato JSON.
+
+    **REGLAS DE EXTRACCIÓN (MUY ESTRICTAS):**
+    1. **No Inventar:** SOLO extrae los valores que están explícitamente en el "TEXTO DEL USUARIO". Si un dato requerido no se menciona (items, precios), no generes el JSON.
+    2. **Validación Mínima:** Si el texto es ambiguo o faltan campos CRÍTICOS para los ítems (descripción, cantidad o precio unitario), genera un mensaje de error claro y NO DEVUELVAS EL JSON.
+    3. **Valores por Defecto:**
+        - Si no se especifica RUC, usa el placeholder '00000000000'.
+        - Si no se especifica moneda, usa 'Soles'.
+    4. **Respuesta Exclusiva:** Tu salida debe ser **SOLAMENTE** el objeto JSON estructurado que sigue el esquema. No añadas introducciones, explicaciones, markdown adicional ni texto fuera del JSON.
+        
     El JSON debe tener esta estructura estricta:
     {{
         "emisor": "Nombre de la empresa o universidad",
