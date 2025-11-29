@@ -7,7 +7,7 @@ from fpdf import FPDF
 # --- 1. CONFIGURATION ---
 # Replace with your actual API Key or use st.secrets for security
 # api_key = st.secrets["GOOGLE_API_KEY"] 
-api_key = st.text_input("Enter Google Gemini API Key", type="AIzaSyBk1Vx2EOmDHyWjPzgEUWrrQ2GYUBpgppU")
+api_key = st.text_input("Enter Google Gemini API Key", type="password")
 
 if api_key:
     genai.configure(api_key=api_key)
