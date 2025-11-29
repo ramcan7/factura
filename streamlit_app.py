@@ -4,16 +4,6 @@ import json
 import re
 from fpdf import FPDF
 
-# --- 1. CONFIGURATION ---
-# Replace with your actual API Key or use st.secrets for security
-# api_key = st.secrets["GOOGLE_API_KEY"] 
-api_key = st.text_input("Enter Google Gemini API Key", type="password")
-
-if api_key:
-    genai.configure(api_key=api_key)
-
-# --- 2. THE "GEM" INTEGRATION ---
-# PASTE YOUR AI STUDIO SYSTEM INSTRUCTIONS HERE
 GEM_SYSTEM_INSTRUCTION = """
 Role: You are an expert billing assistant for the Peruvian system (SUNAT).
 Task: Extract invoice details from natural language and return strict JSON.
@@ -35,7 +25,7 @@ JSON Structure:
 
 # Initialize the model with your Gem's instructions
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-2.5-flash",
     system_instruction=GEM_SYSTEM_INSTRUCTION
 )
 
@@ -122,11 +112,11 @@ def generate_pdf(data):
 
 # --- 4. USER INTERFACE (STREAMLIT) ---
 
-st.title("🧾 SUNAT Billing Agent (English Version)")
+st.title("🧾 SUNAT Agente de facturación")
 st.caption("Powered by Google Gemini 1.5 Flash")
 
 # Chat Input
-user_input = st.chat_input("Example: Create invoice for Company ABC, RUC 20123456789, 5 laptops at 1500 each...")
+user_input = st.chat_input("Ejemplo: Crea una factura para el cliente ABC, RUC 20123456789, 5 laptops a 1500 cada una...")
 
 if user_input and api_key:
     # 1. Display User Message
