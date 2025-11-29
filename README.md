@@ -54,8 +54,24 @@ Notion (Documentación/Prompts): https://www.notion.so/NTT-Data-2ba9eb61dca380e7
 
 ### Evidencia - Prompts:
 
+### Entrada
+![Ingreso](assets_images/Ingreso%20prompt.jpeg)
+![Datos](assets_images/Entrada%20de%20datos%20venta.jpeg)
+
+### Procesamiento JSON
+![JSON](assets_images/Ejemplo%20de%20archivo%20JSON.jpeg)
+
+### Resultado PDF
+![Preview](assets_images/Preview%20final.jpeg)
+![PDF Final](assets_images/Factura%20final%20archivo%20pdf%20local.jpeg)
+
+### Borradores
+![Borrador 1](assets_images/Primer%20Borrador%20Facturio.jpeg)
+![Borrador 2](assets_images/Segundo%20borrador%20de%20prompt.jpeg)
 
 
+### Nota
+Las primeras pruebas se asemejaban a este modelo de factura que se encontro en internet con la información requerida por SUNAT,
 
 
 
