@@ -1,0 +1,12 @@
+services:
+  gemini-app:
+    build:
+      context: .              # El contexto es la raíz (nttdataIActiva)
+      dockerfile: ./Dockerfile  # El archivo de instrucciones está en backend
+    container_name: gemini-container
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app                # Montamos todo nttdataIActiva en /app
+    env_file:
+      - .env
