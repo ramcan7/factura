@@ -22,4 +22,4 @@ EXPOSE 8000
 # --- EL CAMBIO IMPORTANTE ---
 # Como main.py está dentro de la carpeta 'backend', usamos la notación de punto:
 # "backend.main:app" significa: Carpeta backend -> archivo main.py -> objeto app
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
