@@ -1,19 +1,98 @@
-# 💬 Chatbot template
-
-A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
-
+# 💬 Agente Facturio para facturas.
 ### How to run it on your own machine
 
-1. Install the requirements
+1️⃣ Instalar Docker y preparar el entorno
+1. Instalar Docker Desktop
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+Windows / Mac / Linux
 
-2. Run the app
+Descargar desde: https://www.docker.com/products/docker-desktop/
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+Instalar con la configuración por defecto.
+
+Verificar instalación:
+
+docker --version
+docker compose version
+
+
+Deberías ver algo como:
+
+Docker version 26.x
+Docker Compose version v2.x
+
+2️⃣ Levantar el proyecto con Docker Compose
+📁 Asegúrate que en tu carpeta del proyecto exista:
+docker-compose.yml
+app/
+   ├─ main.py
+   ├─ agent.py
+   ├─ pdf_generator.py
+   └─ requirements.txt
+
+▶️ Para levantar el servicio:
+
+Abre una terminal dentro del directorio del proyecto:
+
+docker compose up --build
+
+
+Esto hará:
+
+Construir la imagen del agente.
+
+Instalar dependencias.
+
+Levantar la API en localhost:8000.
+
+Cuando veas:
+
+Uvicorn running on http://0.0.0.0:8000
+
+
+➡️ El agente Facturio está listo.
+A. Enviar un pedido de factura
+
+El Agente Facturio recibe lenguaje natural, pero requiere que el contenido incluya la información mínima del formato de una factura/boleta SUNAT, tal como:
+
+Ejemplo:
+
+Boleta de Venta electrónica Ferretería Carlos,
+Dirección Av. Arequipa 500 Lima,
+RUC 20111945860.
+Fecha 2024-12-30.
+Cliente: Juan Perez, DNI 45454545, Dirección Calle 1 Los Olivos.
+Item: Martillo Precio: 20 soles. Cantidad 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Evidencia - Prompts:
+
+http://localhost:8000/procesar-factura
+
+http://localhost:8000/generar-pdf
+
+
+
+
+
+/
+├── main.py              # Punto de entrada de la API (FastAPI) y definición de endpoints
+├── gemini_handler.py    # Módulo de Inteligencia Artificial (Conexión con Google Gemini)
+├── funciones.py         # Motor lógico: Cálculos matemáticos (IGV) y Generación de PDF
+├── requirements.txt     # Lista de dependencias del proyecto
+├── Dockerfile           # Configuración para construir la imagen del contenedor
+├── docker-compose.yml   # Orquestación del servicio (para levantar la API fácilmente)
+└── .gitignore           # Archivos ignorados por Git
