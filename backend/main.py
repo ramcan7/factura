@@ -23,7 +23,7 @@ else:
 genai.configure(api_key=api_key)
 
 # Usamos el nombre limpio, sin "models/"
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 # 2. Iniciamos la APP (API)
 app = FastAPI()
