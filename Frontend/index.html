@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Facturas AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+        <h1 class="text-2xl font-bold text-slate-800 mb-2 border-b pb-2">
+            <i class="fas fa-file-invoice-dollar text-blue-600 mr-2"></i>Facturador AI
+        </h1>
+        <p class="text-sm text-gray-500 mb-4">Ingresa el texto natural y la IA estructurará la factura.</p>
+
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Texto del Pedido:</label>
+            <textarea id="textoInput" rows="4" 
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Boleta para Juan Perez, DNI 12345678, Dirección Los Olivos 123. Véndeme 2 martillos a 20 soles cada uno."></textarea>
+            <p id="errorMsg" class="text-red-500 text-xs italic mt-2 hidden"></p>
+        </div>
+
+        <div class="flex gap-4">
+            <button onclick="procesarTexto()" id="btnProcesar"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200 flex-1">
+                <i class="fas fa-magic mr-2"></i> 1. Procesar con IA
+            </button>
+            
+            <button onclick="generarPDF()" id="btnDescargar" disabled
+                class="bg-gray-400 text-white font-bold py-2 px-4 rounded cursor-not-allowed flex-1 transition duration-200">
+                <i class="fas fa-file-pdf mr-2"></i> 2. Descargar PDF
+            </button>
+        </div>
+
+        <div id="previewArea" class="mt-6 hidden">
+            <h3 class="text-sm font-bold text-gray-600 mb-2">Datos Estructurados (JSON):</h3>
+            <pre id="jsonOutput" class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-48"></pre>
+        </div>
+    </div>
+
+    <script>
+        let invoiceData = null; // Aquí guardaremos el JSON limpio
+
+        async function procesarTexto() {
+            const texto = document.getElementById('textoInput').value;
+            const btn = document.getElementById('btnProcesar');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            // UI Loading
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analizando...';
+            btn.disabled = true;
+            errorMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch('http://localhost:8000/procesar-factura', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texto_factura: texto })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Error desconocido');
+                }
+
+                // Éxito
+                invoiceData = data;
+                document.getElementById('previewArea').classList.remove('hidden');
+                document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+                
+                // Activar botón PDF
+                const btnPdf = document.getElementById('btnDescargar');
+                btnPdf.disabled = false;
+                btnPdf.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btnPdf.classList.add('bg-green-600', 'hover:bg-green-700');
+
+            } catch (error) {
+                errorMsg.textContent = "❌ " + error.message;
+                errorMsg.classList.remove('hidden');
+                invoiceData = null;
+            } finally {
+                btn.innerHTML = '<i class="fas fa-magic mr-2"></i> 1. Procesar con IA';
+                btn.disabled = false;
+            }
+        }
+
+        async function generarPDF() {
+            if (!invoiceData) return;
+            
+            const btn = document.getElementById('btnDescargar');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Generando...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/generar-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                if (!response.ok) throw new Error("Error al generar PDF");
+
+                // Crear Blob y descargar
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Factura_${invoiceData.client_ruc_dni}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                
+            } catch (error) {
+                alert("Error generando el PDF: " + error.message);
+            } finally {
+                btn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i> 2. Descargar PDF';
+            }
+        }
+    </script>
+</body>
+</html>
