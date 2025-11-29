@@ -76,7 +76,9 @@ Las primeras pruebas se asemejaban a este modelo de factura que se encontro en i
 
 
 
-### Estructura
+## 📂 Estructura del Proyecto
+
+```text
 /
 ├── main.py              # Punto de entrada de la API (FastAPI) y definición de endpoints
 ├── gemini_handler.py    # Módulo de Inteligencia Artificial (Conexión con Google Gemini)
@@ -84,4 +86,5 @@ Las primeras pruebas se asemejaban a este modelo de factura que se encontro en i
 ├── requirements.txt     # Lista de dependencias del proyecto
 ├── Dockerfile           # Configuración para construir la imagen del contenedor
 ├── docker-compose.yml   # Orquestación del servicio (para levantar la API fácilmente)
-└── .gitignore           # Archivos ignorados por Git
+├── .gitignore           # Archivos ignorados por Git
+└── assets_images/       # Carpeta con las imágenes del README
