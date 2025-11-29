@@ -10,16 +10,6 @@ Descargar desde: https://www.docker.com/products/docker-desktop/
 
 Instalar con la configuración por defecto.
 
-Verificar instalación:
-
-docker --version
-docker compose version
-
-
-Deberías ver algo como:
-
-Docker version 26.x
-Docker Compose version v2.x
 
 2️⃣ Levantar el proyecto con Docker Compose
 📁 Asegúrate que en tu carpeta del proyecto exista:
@@ -37,21 +27,9 @@ Abre una terminal dentro del directorio del proyecto:
 docker compose up --build
 
 
-Esto hará:
-
-Construir la imagen del agente.
-
-Instalar dependencias.
-
-Levantar la API en localhost:8000.
-
-Cuando veas:
-
-Uvicorn running on http://0.0.0.0:8000
-
-
 ➡️ El agente Facturio está listo.
-A. Enviar un pedido de factura
+
+Ahora puedes enviar un pedido de factura
 
 El Agente Facturio recibe lenguaje natural, pero requiere que el contenido incluya la información mínima del formato de una factura/boleta SUNAT, tal como:
 
@@ -65,29 +43,24 @@ Cliente: Juan Perez, DNI 45454545, Dirección Calle 1 Los Olivos.
 Item: Martillo Precio: 20 soles. Cantidad 1
 
 
+✉️ Información del proyecto 
 
+Presentación: https://gamma.app/docs/Agente-de-Facturacion-SUNAT-Simplificando-el-Proceso-byyuako5ro16ban
 
-
-
-
-
-
-
-
+Notion (Documentación/Prompts): https://www.notion.so/NTT-Data-2ba9eb61dca380e78745d48616d6a6b4?source=copy_link
 
 
 
 
 ### Evidencia - Prompts:
 
-http://localhost:8000/procesar-factura
-
-http://localhost:8000/generar-pdf
 
 
 
 
 
+
+### Estructura
 /
 ├── main.py              # Punto de entrada de la API (FastAPI) y definición de endpoints
 ├── gemini_handler.py    # Módulo de Inteligencia Artificial (Conexión con Google Gemini)
