@@ -3,56 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Facturas AI</title>
+    <title>Facturio - Generador Inteligente</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+        }
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .invoice-appear {
+            animation: slide-up 0.6s ease-out forwards;
+        }
+        .pulse-shadow {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
 </head>
-<body class="bg-slate-100 h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2 border-b pb-2">
-            <i class="fas fa-file-invoice-dollar text-blue-600 mr-2"></i>Facturador AI
-        </h1>
-        <p class="text-sm text-gray-500 mb-4">Ingresa el texto natural y la IA estructurará la factura.</p>
-
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Texto del Pedido:</label>
-            <textarea id="textoInput" rows="4" 
-                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej: Boleta para Juan Perez, DNI 12345678, Dirección Los Olivos 123. Véndeme 2 martillos a 20 soles cada uno."></textarea>
-            <p id="errorMsg" class="text-red-500 text-xs italic mt-2 hidden"></p>
+    <div class="mb-8 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 to-cyan-500 shadow-lg shadow-emerald-500/20 mb-4">
+            <i class="fas fa-bolt text-3xl text-white"></i>
         </div>
+        <h1 class="text-4xl font-extrabold text-white tracking-tight">Facturio</h1>
+        <p class="text-slate-400 mt-2 font-light">Inteligencia Artificial Contable</p>
+    </div>
 
-        <div class="flex gap-4">
+    <div class="flex flex-col lg:flex-row gap-6 w-full max-w-6xl items-start justify-center">
+
+        <div class="glass-panel w-full lg:w-1/2 rounded-3xl shadow-2xl p-8 border border-white/20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-700">1. Describe tu venta</h2>
+                <button onclick="pegarEjemplo()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full hover:bg-indigo-100 transition font-semibold border border-indigo-200">
+                    <i class="fas fa-magic mr-1"></i> Ver Ejemplo
+                </button>
+            </div>
+
+            <div class="relative group">
+                <textarea id="textoInput" rows="6" 
+                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm leading-relaxed resize-none shadow-inner"
+                    placeholder="Escribe aquí... Ej: Factura para Empresa XYZ, RUC 20555... por 5 laptops a 3000 soles cada una."></textarea>
+                <div class="absolute bottom-4 right-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
+                    <i class="fas fa-keyboard text-xl"></i>
+                </div>
+            </div>
+
+            <p id="errorMsg" class="hidden mt-3 bg-red-50 text-red-600 text-xs p-3 rounded-lg border border-red-100 flex items-center">
+                <i class="fas fa-exclamation-circle text-lg mr-2"></i> <span id="errorText">Error</span>
+            </p>
+
             <button onclick="procesarTexto()" id="btnProcesar"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200 flex-1">
-                <i class="fas fa-magic mr-2"></i> 1. Procesar con IA
-            </button>
-            
-            <button onclick="generarPDF()" id="btnDescargar" disabled
-                class="bg-gray-400 text-white font-bold py-2 px-4 rounded cursor-not-allowed flex-1 transition duration-200">
-                <i class="fas fa-file-pdf mr-2"></i> 2. Descargar PDF
+                class="mt-6 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-6 rounded-2xl transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center gap-2">
+                <i class="fas fa-robot text-emerald-400"></i>
+                <span>Procesar Factura</span>
             </button>
         </div>
 
-        <div id="previewArea" class="mt-6 hidden">
-            <h3 class="text-sm font-bold text-gray-600 mb-2">Datos Estructurados (JSON):</h3>
-            <pre id="jsonOutput" class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-auto max-h-48"></pre>
+        <div id="previewContainer" class="hidden w-full lg:w-1/2 invoice-appear">
+            
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 relative">
+                
+                <div class="h-2 bg-gradient-to-r from-emerald-400 to-cyan-500"></div>
+
+                <div class="p-8">
+                    <div class="flex justify-between items-start mb-8 border-b border-slate-100 pb-6">
+                        <div>
+                            <h3 id="prevEmisor" class="text-xl font-bold text-slate-800 leading-tight">Empresa Emisora</h3>
+                            <p id="prevDireccionEmisor" class="text-xs text-slate-500 mt-1 max-w-[200px]">Dirección...</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2">
+                                <p id="prevDocType" class="text-xs font-bold text-slate-500 uppercase tracking-wider">BOLETA DE VENTA</p>
+                                <p id="prevRuc" class="text-sm font-mono text-slate-800">RUC: 000000000</p>
+                                <p id="prevSerie" class="text-sm font-mono text-slate-800 font-bold">B001-00001</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase font-bold">Cliente</p>
+                            <p id="prevCliente" class="text-sm font-bold text-slate-700">Nombre Cliente</p>
+                            <p id="prevClienteRuc" class="text-xs text-slate-500 font-mono mt-1">DNI/RUC: -</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400 uppercase font-bold">Fecha Emisión</p>
+                            <p id="prevFecha" class="text-sm font-bold text-slate-700">DD/MM/YYYY</p>
+                            <p id="prevMoneda" class="text-xs text-slate-500 mt-1">Moneda: SOLES</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-hidden rounded-lg border border-slate-200 mb-6">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-100 text-slate-600">
+                                <tr>
+                                    <th class="py-2 px-3 text-left text-xs font-bold uppercase">Cant</th>
+                                    <th class="py-2 px-3 text-left text-xs font-bold uppercase">Descripción</th>
+                                    <th class="py-2 px-3 text-right text-xs font-bold uppercase">P.Unit</th>
+                                    <th class="py-2 px-3 text-right text-xs font-bold uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody" class="divide-y divide-slate-100 text-slate-600">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <div class="w-1/2 space-y-2">
+                            <div class="flex justify-between text-xs text-slate-500">
+                                <span>Subtotal</span>
+                                <span id="prevSubtotal">0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-slate-500">
+                                <span>IGV (18%)</span>
+                                <span id="prevIgv">0.00</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2">
+                                <span>TOTAL</span>
+                                <span id="prevTotal">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                         <p id="prevMontoLetras" class="text-[10px] text-slate-400 uppercase italic">SON: CERO CON 00/100 SOLES</p>
+                    </div>
+
+                </div>
+
+                <button onclick="generarPDF()" id="btnDescargar"
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 transition-colors flex justify-center items-center gap-2">
+                    <i class="fas fa-file-pdf text-xl"></i>
+                    DESCARGAR PDF OFICIAL
+                </button>
+            </div>
         </div>
+
+    </div>
+
+    <div class="mt-8 text-slate-500 text-xs font-light">
+        Potenciado por <span class="font-bold text-slate-400">Gemini 2.0</span>
     </div>
 
     <script>
-        let invoiceData = null; // Aquí guardaremos el JSON limpio
+        let invoiceData = null;
+
+        function pegarEjemplo() {
+            const ejemplo = `Boleta de Venta electrónica Ferretería Carlos, Dirección Av. Arequipa 500 Lima, RUC 20111945860. 
+Cliente: Juan Perez, DNI 45454545, Dirección Calle 1 Los Olivos. 
+Fecha: Hoy. Forma de pago: Contado.
+Items:
+- 1 Martillo (UNI) a 20 soles.
+- 2 Cajas de Clavos (CJA) a 15 soles c/u.`;
+            document.getElementById('textoInput').value = ejemplo;
+        }
 
         async function procesarTexto() {
             const texto = document.getElementById('textoInput').value;
             const btn = document.getElementById('btnProcesar');
             const errorMsg = document.getElementById('errorMsg');
-            
+            const previewContainer = document.getElementById('previewContainer');
+
+            if(!texto.trim()) return;
+
             // UI Loading
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analizando...';
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Analizando...';
             btn.disabled = true;
             errorMsg.classList.add('hidden');
+            previewContainer.classList.add('hidden');
 
             try {
                 const response = await fetch('http://localhost:8000/procesar-factura', {
@@ -63,37 +194,76 @@
 
                 const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Error desconocido');
-                }
+                if (!response.ok) throw new Error(data.detail || 'Error desconocido');
 
-                // Éxito
                 invoiceData = data;
-                document.getElementById('previewArea').classList.remove('hidden');
-                document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
-                
-                // Activar botón PDF
-                const btnPdf = document.getElementById('btnDescargar');
-                btnPdf.disabled = false;
-                btnPdf.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btnPdf.classList.add('bg-green-600', 'hover:bg-green-700');
+                renderizarVistaPrevia(data);
 
             } catch (error) {
-                errorMsg.textContent = "❌ " + error.message;
+                document.getElementById('errorText').textContent = error.message;
                 errorMsg.classList.remove('hidden');
-                invoiceData = null;
             } finally {
-                btn.innerHTML = '<i class="fas fa-magic mr-2"></i> 1. Procesar con IA';
+                btn.innerHTML = '<i class="fas fa-robot text-emerald-400"></i><span>Procesar Factura</span>';
                 btn.disabled = false;
             }
         }
 
+        function renderizarVistaPrevia(data) {
+            // Llenar datos de cabecera
+            document.getElementById('prevEmisor').textContent = data.emisor_nombre;
+            document.getElementById('prevDireccionEmisor').textContent = data.emisor_direccion;
+            document.getElementById('prevDocType').textContent = data.document_type.toUpperCase();
+            document.getElementById('prevRuc').textContent = `RUC: ${data.emisor_ruc}`;
+            document.getElementById('prevSerie').textContent = data.serie_correlativo;
+
+            // Llenar datos cliente
+            document.getElementById('prevCliente').textContent = data.client;
+            document.getElementById('prevClienteRuc').textContent = `${data.client_ruc_dni.length > 8 ? 'RUC' : 'DNI'}: ${data.client_ruc_dni}`;
+            document.getElementById('prevFecha').textContent = data.fecha_emision;
+            document.getElementById('prevMoneda').textContent = `Moneda: ${data.moneda}`;
+
+            // Llenar Tabla
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+            
+            let subtotal = 0;
+
+            data.items.forEach(item => {
+                const totalItem = item.cantidad * item.precio_unitario;
+                subtotal += totalItem;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-3 text-left font-mono">${item.cantidad}</td>
+                    <td class="py-2 px-3 text-left">${item.descripcion} <span class="text-[10px] text-slate-400">(${item.unidad_medida})</span></td>
+                    <td class="py-2 px-3 text-right font-mono">${item.precio_unitario.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-bold font-mono">${totalItem.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Cálculos Finales
+            const igv = subtotal * 0.18;
+            const total = subtotal + igv;
+            const simbolo = data.moneda.toUpperCase().includes('DOLAR') ? '$' : 'S/';
+
+            document.getElementById('prevSubtotal').textContent = `${simbolo} ${subtotal.toFixed(2)}`;
+            document.getElementById('prevIgv').textContent = `${simbolo} ${igv.toFixed(2)}`;
+            document.getElementById('prevTotal').textContent = `${simbolo} ${total.toFixed(2)}`;
+            document.getElementById('prevMontoLetras').textContent = `SON: ${data.monto_letras}`;
+
+            // Mostrar el contenedor
+            document.getElementById('previewContainer').classList.remove('hidden');
+        }
+
         async function generarPDF() {
             if (!invoiceData) return;
-            
             const btn = document.getElementById('btnDescargar');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Generando...';
+            const originalHTML = btn.innerHTML;
             
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GENERANDO...';
+            btn.disabled = true;
+
             try {
                 const response = await fetch('http://localhost:8000/generar-pdf', {
                     method: 'POST',
@@ -101,22 +271,21 @@
                     body: JSON.stringify(invoiceData)
                 });
 
-                if (!response.ok) throw new Error("Error al generar PDF");
+                if (!response.ok) throw new Error("Error en PDF");
 
-                // Crear Blob y descargar
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Factura_${invoiceData.client_ruc_dni}.pdf`;
+                a.download = `Facturio_${invoiceData.client_ruc_dni}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                
             } catch (error) {
-                alert("Error generando el PDF: " + error.message);
+                alert("Error: " + error.message);
             } finally {
-                btn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i> 2. Descargar PDF';
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             }
         }
     </script>
