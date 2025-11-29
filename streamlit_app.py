@@ -1,56 +1,167 @@
 import streamlit as st
-from openai import OpenAI
+import google.generativeai as genai
+import json
+import re
+from fpdf import FPDF
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+# --- 1. CONFIGURATION ---
+# Replace with your actual API Key or use st.secrets for security
+# api_key = st.secrets["GOOGLE_API_KEY"] 
+api_key = st.text_input("Enter Google Gemini API Key", type="AIzaSyBk1Vx2EOmDHyWjPzgEUWrrQ2GYUBpgppU")
+
+if api_key:
+    genai.configure(api_key=api_key)
+
+# --- 2. THE "GEM" INTEGRATION ---
+# PASTE YOUR AI STUDIO SYSTEM INSTRUCTIONS HERE
+GEM_SYSTEM_INSTRUCTION = """
+Role: You are an expert billing assistant for the Peruvian system (SUNAT).
+Task: Extract invoice details from natural language and return strict JSON.
+
+Business Rules:
+1. Client: Extract name and RUC (Tax ID). If RUC is missing, generate a dummy 11-digit one.
+2. Items: Extract description, quantity (default to 1), and unit price.
+3. Constraint: Do NOT calculate totals. Set 'subtotal', 'igv', and 'total' to 0.
+4. Output: Return ONLY raw JSON. No markdown, no explanations.
+
+JSON Structure:
+{
+  "client": { "name": "string", "ruc": "string", "address": "string" },
+  "items": [
+    { "description": "string", "quantity": float, "unit_price": float }
+  ]
+}
+"""
+
+# Initialize the model with your Gem's instructions
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=GEM_SYSTEM_INSTRUCTION
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# --- 3. HELPER FUNCTIONS (LOGIC) ---
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+def calculate_invoice_totals(data):
+    """
+    Performs deterministic math calculations (Python).
+    Rule: Total = Base * 1.18 (18% IGV)
+    """
+    IGV_RATE = 0.18
+    
+    subtotal_accumulated = 0.0
+    processed_items = []
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    # Calculate line by line
+    for item in data.get('items', []):
+        qty = float(item.get('quantity', 1))
+        price = float(item.get('unit_price', 0))
+        line_total = qty * price
+        
+        subtotal_accumulated += line_total
+        
+        # Add calculation back to item
+        item['line_total'] = round(line_total, 2)
+        processed_items.append(item)
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    # Calculate Finals
+    subtotal = subtotal_accumulated
+    igv = subtotal * IGV_RATE
+    total = subtotal + igv
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+    # Construct final dictionary
+    return {
+        "client": data.get('client', {}),
+        "items": processed_items,
+        "totals": {
+            "subtotal": round(subtotal, 2),
+            "igv": round(igv, 2),
+            "total": round(total, 2)
+        }
+    }
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+def generate_pdf(data):
+    """Generates a simple PDF invoice"""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "ELECTRONIC INVOICE (SUNAT)", ln=True, align='C')
+    
+    pdf.set_font("Arial", size=10)
+    client = data['client']
+    pdf.ln(10)
+    pdf.cell(0, 5, f"Client: {client.get('name', 'N/A')}", ln=True)
+    pdf.cell(0, 5, f"RUC: {client.get('ruc', 'N/A')}", ln=True)
+    
+    pdf.ln(10)
+    # Headers
+    pdf.set_fill_color(240, 240, 240)
+    pdf.cell(100, 8, "Description", 1, 0, 'C', 1)
+    pdf.cell(20, 8, "Qty", 1, 0, 'C', 1)
+    pdf.cell(35, 8, "Unit Price", 1, 0, 'C', 1)
+    pdf.cell(35, 8, "Total", 1, 1, 'C', 1)
+    
+    # Rows
+    for item in data['items']:
+        pdf.cell(100, 8, str(item['description']), 1)
+        pdf.cell(20, 8, str(item['quantity']), 1, 0, 'C')
+        pdf.cell(35, 8, f"{item['unit_price']:.2f}", 1, 0, 'R')
+        pdf.cell(35, 8, f"{item['line_total']:.2f}", 1, 1, 'R')
+        
+    # Totals
+    totals = data['totals']
+    pdf.ln(5)
+    pdf.cell(155, 8, "Subtotal:", 0, 0, 'R')
+    pdf.cell(35, 8, f"{totals['subtotal']:.2f}", 0, 1, 'R')
+    pdf.cell(155, 8, "IGV (18%):", 0, 0, 'R')
+    pdf.cell(35, 8, f"{totals['igv']:.2f}", 0, 1, 'R')
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(155, 10, "TOTAL:", 0, 0, 'R')
+    pdf.cell(35, 10, f"{totals['total']:.2f}", 0, 1, 'R')
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+# --- 4. USER INTERFACE (STREAMLIT) ---
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+st.title("🧾 SUNAT Billing Agent (English Version)")
+st.caption("Powered by Google Gemini 1.5 Flash")
+
+# Chat Input
+user_input = st.chat_input("Example: Create invoice for Company ABC, RUC 20123456789, 5 laptops at 1500 each...")
+
+if user_input and api_key:
+    # 1. Display User Message
+    st.chat_message("user").write(user_input)
+    
+    with st.spinner("Gemini is extracting data..."):
+        try:
+            # 2. Call Gemini (The Brain)
+            response = model.generate_content(
+                user_input,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            
+            # 3. Process Data
+            raw_data = json.loads(response.text)
+            final_invoice = calculate_invoice_totals(raw_data)
+            
+            # 4. Display Result
+            with st.chat_message("assistant"):
+                st.success("Invoice generated successfully!")
+                
+                # Show JSON for debugging/validation
+                with st.expander("View Raw JSON Data"):
+                    st.json(final_invoice)
+                
+                # Generate PDF
+                pdf_bytes = generate_pdf(final_invoice)
+                
+                # Download Button
+                st.download_button(
+                    label="📥 Download PDF Invoice",
+                    data=pdf_bytes,
+                    file_name="invoice_output.pdf",
+                    mime="application/pdf"
+                )
+                
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
