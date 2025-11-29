@@ -1,157 +1,138 @@
-import streamlit as st
-import google.generativeai as genai
-import json
-import re
-from fpdf import FPDF
+"""
+Streamlit front-end for local development that consumes two backend endpoints:
 
-GEM_SYSTEM_INSTRUCTION = """
-Role: You are an expert billing assistant for the Peruvian system (SUNAT).
-Task: Extract invoice details from natural language and return strict JSON.
+1) POST /procesar-factura -> accepts JSON {"texto_factura": "..."}
+2) POST /generar-pdf -> accepts full invoice JSON and returns PDF bytes
 
-Business Rules:
-1. Client: Extract name and RUC (Tax ID). If RUC is missing, generate a dummy 11-digit one.
-2. Items: Extract description, quantity (default to 1), and unit price.
-3. Constraint: Do NOT calculate totals. Set 'subtotal', 'igv', and 'total' to 0.
-4. Output: Return ONLY raw JSON. No markdown, no explanations.
+Run backend locally:
+  uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
-JSON Structure:
-{
-  "client": { "name": "string", "ruc": "string", "address": "string" },
-  "items": [
-    { "description": "string", "quantity": float, "unit_price": float }
-  ]
-}
+Run Streamlit locally:
+  streamlit run streamlit_app.py
+
+For testing with a deployed Streamlit app, expose backend with ngrok:
+  ngrok http 8000
+  export BACKEND_URL="https://xxxxx.ngrok.io"
+
+The UI below lets you send raw text to /procesar-factura, view/edit the returned
+JSON, and then send it to /generar-pdf to download the generated PDF.
 """
 
-# Initialize the model with your Gem's instructions
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    system_instruction=GEM_SYSTEM_INSTRUCTION
-)
+import os
+import requests
+import streamlit as st
+import json
+from typing import Any, Dict
 
-# --- 3. HELPER FUNCTIONS (LOGIC) ---
 
-def calculate_invoice_totals(data):
-    """
-    Performs deterministic math calculations (Python).
-    Rule: Total = Base * 1.18 (18% IGV)
-    """
-    IGV_RATE = 0.18
-    
-    subtotal_accumulated = 0.0
-    processed_items = []
+# Resolve backend URL: env -> st.secrets -> default localhost
+def get_backend_url() -> str:
+    url = os.environ.get("BACKEND_URL")
+    if not url:
+        try:
+            url = st.secrets.get("backend_url")
+        except Exception:
+            url = None
+    return url or "http://localhost:8000"
 
-    # Calculate line by line
-    for item in data.get('items', []):
-        qty = float(item.get('quantity', 1))
-        price = float(item.get('unit_price', 0))
-        line_total = qty * price
-        
-        subtotal_accumulated += line_total
-        
-        # Add calculation back to item
-        item['line_total'] = round(line_total, 2)
-        processed_items.append(item)
 
-    # Calculate Finals
-    subtotal = subtotal_accumulated
-    igv = subtotal * IGV_RATE
-    total = subtotal + igv
+BACKEND_URL = get_backend_url()
 
-    # Construct final dictionary
-    return {
-        "client": data.get('client', {}),
-        "items": processed_items,
-        "totals": {
-            "subtotal": round(subtotal, 2),
-            "igv": round(igv, 2),
-            "total": round(total, 2)
-        }
+
+st.set_page_config(page_title="Facturador - Local", layout="wide")
+st.title("🧾 Facturador (Frontend local)")
+st.caption(f"Backend: {BACKEND_URL}")
+
+
+def call_procesar_factura(texto: str) -> Dict[str, Any]:
+    url = f"{BACKEND_URL}/procesar-factura"
+    resp = requests.post(url, json={"texto_factura": texto}, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def call_generar_pdf(invoice_payload: Dict[str, Any]) -> bytes:
+    url = f"{BACKEND_URL}/generar-pdf"
+    resp = requests.post(url, json=invoice_payload, timeout=60)
+    resp.raise_for_status()
+    # If backend returns JSON (error), raise
+    content_type = resp.headers.get("Content-Type", "")
+    if "application/json" in content_type:
+        data = resp.json()
+        raise RuntimeError(f"Backend error: {data}")
+    return resp.content
+
+
+col1, col2 = st.columns([2, 3])
+
+with col1:
+    st.header("1) Extract invoice from text")
+    texto = st.text_area("Paste invoice / receipt text here", height=200)
+    if st.button("Process invoice (POST /procesar-factura)"):
+        if not texto.strip():
+            st.warning("Please enter invoice text first.")
+        else:
+            try:
+                with st.spinner("Calling backend /procesar-factura..."):
+                    result = call_procesar_factura(texto)
+                    st.success("Received JSON from backend")
+                    st.json(result)
+                    st.session_state["invoice_data"] = result
+            except Exception as e:
+                st.error(f"Error calling backend: {e}")
+
+    st.markdown("---")
+    st.header("Or: Use manual/sample invoice JSON")
+    sample = {
+        "document_type": "Factura",
+        "serie_correlativo": "F001-0000001",
+        "emisor_nombre": "D&B COMBUSTIBLES DEL PERU S.A.C.",
+        "emisor_ruc": "20521579782",
+        "emisor_direccion": "CALLE LOS PRECIADOS N 156 INT 304, LIMA",
+        "client": "Juan Perez",
+        "client_address": "Dirección Desconocida - Lima",
+        "ruc_simulado": "00000000000",
+        "fecha_emision": "30/12/2024",
+        "fecha_vencimiento": "30/12/2024",
+        "forma_pago": "Contado",
+        "moneda": "SOLES",
+        "items": [
+            {"descripcion": "Martillo", "cantidad": 1.0, "unidad_medida": "UNI", "precio_unitario": 20.0}
+        ],
+        "monto_letras": "VEINTE CON 00/100 SOLES"
     }
 
-def generate_pdf(data):
-    """Generates a simple PDF invoice"""
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "ELECTRONIC INVOICE (SUNAT)", ln=True, align='C')
-    
-    pdf.set_font("Arial", size=10)
-    client = data['client']
-    pdf.ln(10)
-    pdf.cell(0, 5, f"Client: {client.get('name', 'N/A')}", ln=True)
-    pdf.cell(0, 5, f"RUC: {client.get('ruc', 'N/A')}", ln=True)
-    
-    pdf.ln(10)
-    # Headers
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(100, 8, "Description", 1, 0, 'C', 1)
-    pdf.cell(20, 8, "Qty", 1, 0, 'C', 1)
-    pdf.cell(35, 8, "Unit Price", 1, 0, 'C', 1)
-    pdf.cell(35, 8, "Total", 1, 1, 'C', 1)
-    
-    # Rows
-    for item in data['items']:
-        pdf.cell(100, 8, str(item['description']), 1)
-        pdf.cell(20, 8, str(item['quantity']), 1, 0, 'C')
-        pdf.cell(35, 8, f"{item['unit_price']:.2f}", 1, 0, 'R')
-        pdf.cell(35, 8, f"{item['line_total']:.2f}", 1, 1, 'R')
-        
-    # Totals
-    totals = data['totals']
-    pdf.ln(5)
-    pdf.cell(155, 8, "Subtotal:", 0, 0, 'R')
-    pdf.cell(35, 8, f"{totals['subtotal']:.2f}", 0, 1, 'R')
-    pdf.cell(155, 8, "IGV (18%):", 0, 0, 'R')
-    pdf.cell(35, 8, f"{totals['igv']:.2f}", 0, 1, 'R')
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(155, 10, "TOTAL:", 0, 0, 'R')
-    pdf.cell(35, 10, f"{totals['total']:.2f}", 0, 1, 'R')
-    
-    return pdf.output(dest='S').encode('latin-1')
+    if "invoice_data" not in st.session_state:
+        st.session_state["invoice_data"] = sample
 
-# --- 4. USER INTERFACE (STREAMLIT) ---
-
-st.title("🧾 SUNAT Agente de facturación")
-st.caption("Powered by Google Gemini 1.5 Flash")
-
-# Chat Input
-user_input = st.chat_input("Ejemplo: Crea una factura para el cliente ABC, RUC 20123456789, 5 laptops a 1500 cada una...")
-
-if user_input and api_key:
-    # 1. Display User Message
-    st.chat_message("user").write(user_input)
-    
-    with st.spinner("Gemini is extracting data..."):
+    invoice_text = st.text_area("Invoice JSON (editable)", value=json.dumps(st.session_state["invoice_data"], ensure_ascii=False, indent=2), height=300)
+    if st.button("Update JSON preview"):
         try:
-            # 2. Call Gemini (The Brain)
-            response = model.generate_content(
-                user_input,
-                generation_config={"response_mime_type": "application/json"}
-            )
-            
-            # 3. Process Data
-            raw_data = json.loads(response.text)
-            final_invoice = calculate_invoice_totals(raw_data)
-            
-            # 4. Display Result
-            with st.chat_message("assistant"):
-                st.success("Invoice generated successfully!")
-                
-                # Show JSON for debugging/validation
-                with st.expander("View Raw JSON Data"):
-                    st.json(final_invoice)
-                
-                # Generate PDF
-                pdf_bytes = generate_pdf(final_invoice)
-                
-                # Download Button
-                st.download_button(
-                    label="📥 Download PDF Invoice",
-                    data=pdf_bytes,
-                    file_name="invoice_output.pdf",
-                    mime="application/pdf"
-                )
-                
+            parsed = json.loads(invoice_text)
+            st.session_state["invoice_data"] = parsed
+            st.success("Invoice JSON updated")
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"Invalid JSON: {e}")
+
+with col2:
+    st.header("2) Generate PDF from JSON")
+    st.markdown("Use the JSON from the left column (editable) or the backend response.")
+    if "invoice_data" in st.session_state:
+        st.subheader("Current invoice preview")
+        st.json(st.session_state["invoice_data"])
+
+    if st.button("Generate PDF (POST /generar-pdf)"):
+        try:
+            payload = st.session_state.get("invoice_data")
+            if not payload:
+                st.warning("No invoice JSON available.")
+            else:
+                with st.spinner("Calling backend /generar-pdf..."):
+                    pdf_bytes = call_generar_pdf(payload)
+                    st.success("PDF generated by backend")
+                    st.download_button("Download PDF", data=pdf_bytes, file_name="invoice.pdf", mime="application/pdf")
+        except Exception as e:
+            st.error(f"Error generating PDF: {e}")
+
+    st.markdown("---")
+    st.write("Advanced: set `BACKEND_URL` env var or `st.secrets['backend_url']` to point to a deployed backend.")
