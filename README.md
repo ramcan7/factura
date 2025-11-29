@@ -52,26 +52,15 @@ Notion (Documentación/Prompts): https://www.notion.so/NTT-Data-2ba9eb61dca380e7
 
 
 
-
-
-
-
-
-
-
-
-
-
 ### Evidencia - Prompts:
 
-http://localhost:8000/procesar-factura
-
-http://localhost:8000/generar-pdf
 
 
 
 
 
+
+### Estructura
 /
 ├── main.py              # Punto de entrada de la API (FastAPI) y definición de endpoints
 ├── gemini_handler.py    # Módulo de Inteligencia Artificial (Conexión con Google Gemini)
