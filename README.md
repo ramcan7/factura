@@ -71,8 +71,8 @@ Notion (Documentación/Prompts): https://www.notion.so/NTT-Data-2ba9eb61dca380e7
 
 
 ### Nota
-Las primeras pruebas se asemejaban a este modelo de factura que se encontro en internet con la información requerida por SUNAT,
-![Modelo Ideal](assets_images/factura%20ideal.jpg)
+Las primeras pruebas se asemejaban a este modelo de factura que se encontro en internet con la información requerida por SUNAT
+![Modelo Ideal](assets_images/imagen%20factura%20ideal.jpg)
 
 
 
