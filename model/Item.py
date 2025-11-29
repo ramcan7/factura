@@ -4,9 +4,9 @@ import json
 
 @dataclass
 class Item:
-    descripcion: str
-    cantidad: int
-    precio: float
+    description: str
+    quantity: int
+    price: float
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -17,9 +17,9 @@ class Item:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Item":
         return cls(
-            descripcion=str(data.get("descripcion", "")),
-            cantidad=int(data.get("cantidad", 0)),
-            precio=float(data.get("precio", 0.0)),
+            description=str(data.get("description", "")),
+            quantity=int(data.get("quantity", 0)),
+            price=float(data.get("price", 0.0)),
         )
 
     @classmethod
@@ -31,9 +31,9 @@ class Item:
 
 def items_from_json(payload: Union[str, bytes]) -> List[Item]:
     """
-    Deserializa un objeto JSON o una lista JSON de objetos Item.
-    - Si el JSON es un objeto, devuelve una lista con un Item.
-    - Si es una lista, devuelve la lista de Item.
+    Deserialize a JSON object or a list of JSON objects into Item instances.
+    - If JSON is an object, returns a list with one Item.
+    - If JSON is a list, returns the list of Items.
     """
     if isinstance(payload, (bytes, bytearray)):
         payload = payload.decode()
